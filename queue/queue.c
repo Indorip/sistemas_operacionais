@@ -12,25 +12,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef uint64_t u64;
-typedef int64_t i64;
-
-struct Node {
+typedef struct Node {
     struct Node* next;
     void* content;
-};
-typedef struct Node Node;
+} Node;
 
-struct queue_t {
+typedef struct queue_t {
     Node* first;
     Node* last;
     Node* iterator;
     int size;
-};
-typedef struct queue_t Queue;
+} Queue;
 
 Queue* queue_create() {
-    Queue* new_queue = malloc(sizeof(Queue));
+    Queue* new_queue = calloc(1, sizeof(Queue));
     if (!new_queue) return NULL;
 
     return new_queue;
@@ -45,6 +40,7 @@ int queue_destroy(Queue* queue) {
         aux = deleted->next;
         free(deleted);
     }
+    free(queue);
 
     return NOERROR;
 }
@@ -81,6 +77,7 @@ int queue_del(Queue* queue, void* item) {
                 queue->first = queue->last = NULL;
                 queue->size = 0;
                 queue->iterator = NULL;
+                free(aux);
                 return NOERROR;
             } else {
                 return ERROR;
