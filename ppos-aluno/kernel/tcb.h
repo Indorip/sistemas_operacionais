@@ -18,6 +18,7 @@ struct task_t {
         READY,
         RUNNING,
         SUSPENDED,
+        FINISHED,
     } status;
     struct task_t* parent; // task that created this task
                            // NULL if it has been created by the kernel
