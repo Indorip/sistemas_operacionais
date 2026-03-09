@@ -6,12 +6,18 @@
 
 #include "../lib/queue.h"
 #include "task.h"
+// #include "dispatcher.h"
+#include "macros.h"
 
 extern void user_main(void* arg);
 
-void dispatcher_init() {}
+void dispatcher_init() {
+    ppos_debug("subsystem dispatcher initiated\n");
+}
 
 void dispatcher() {
+    ppos_debug("dispatcher started\n");
+
     struct task_t* task_user = task_create("user", user_main, NULL);
 
     task_switch(task_user);

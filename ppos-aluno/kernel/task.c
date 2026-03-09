@@ -54,11 +54,19 @@ struct task_t* task_create(char* name, void (*entry)(void*), void* arg) {
         .parent = current_active_task,
     };
 
+    ppos_debug("task %d (%s) create task %d (%s)\n",
+               task_id(current_active_task), task_name(current_active_task),
+               task_id(new_task), task_name(new_task));
+
     return new_task;
 }
 
 int task_destroy(struct task_t* task) {
     if (!task) return ERROR;
+
+    ppos_debug("task %d (%s) destroy task %d (%s)\n",
+               task_id(current_active_task), task_name(current_active_task),
+               task_id(task), task_name(task));
 
     free(task->context.stack);
     free(task);
@@ -70,6 +78,11 @@ int task_switch(struct task_t* task) {
     struct task_t* paused_task = current_active_task;
     if (!task) {
         if (current_active_task->id == 0) return ERROR;
+
+        ppos_debug("task %d (%s) switch to task %d (%s)\n",
+                   task_id(current_active_task), task_name(current_active_task),
+                   task_id(current_active_task->parent),
+                   task_name(current_active_task->parent));
 
         paused_task->status = READY;
         current_active_task = paused_task->parent;
@@ -83,6 +96,10 @@ int task_switch(struct task_t* task) {
 
     // cannot switch to a finished task
     if (task->status == FINISHED) return NOERROR;
+
+    ppos_debug("task %d (%s) switch to task %d (%s)\n",
+               task_id(current_active_task), task_name(current_active_task),
+               task_id(task), task_name(task));
 
     paused_task->status = READY;
     current_active_task = task;
@@ -123,4 +140,6 @@ void task_init() {
 
     current_active_task = &task_kernel;
     task_kernel.status = RUNNING;
+
+    ppos_debug("task subsystem initiated\n");
 }
