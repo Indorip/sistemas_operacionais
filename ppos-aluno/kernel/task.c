@@ -25,7 +25,7 @@ unsigned long current_task_id =
 struct task_t task_kernel = (struct task_t){
     .id = 0,
     .name = "kernel",
-    .context = (struct ctx_t){0},  // will be set from the function task_init()
+    .context = {0},  // will be set from the function task_init()
     .status = READY,
     .parent = NULL,  // all tasks will be generated from the kernel
 };
@@ -123,21 +123,9 @@ char* task_name(struct task_t* task) {
 }
 
 void task_init() {
-    // since the kernel is also a task, we need to set it's stack;
-    // But, since we're already on the kernel, we can't use ctx_create, because
-    // when we call ctx_swap() to switch to the kernel (for the first time), the
-    // execution would have to start in the start of a function, thus, we
-    // manually set the stack fields.
-    void* kernel_stack = malloc(KERNEL_STACK_SIZE);
-    if (!kernel_stack) {
-        fprintf(
-            stderr, FONT_RED
-            "ERROR WHEN ALLOCATING KERNEL STACK, ABORTING...\n" FONT_NORMAL);
-        exit(1);
-    }
-    task_kernel.context.stack = kernel_stack;
-    task_kernel.context.size = KERNEL_STACK_SIZE;
-
+    // for now these assignments seem redundant
+    // (and this function also seems redundant with the current needs of the
+    // operating system)
     current_active_task = &task_kernel;
     task_kernel.status = RUNNING;
 
