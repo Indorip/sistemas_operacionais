@@ -10,8 +10,6 @@
 #include "macros.h"
 #include "tcb.h"
 
-// maybe the kernel can have a bigger/smaller stack than other processes?
-#define KERNEL_STACK_SIZE (unsigned long)(32 * 1024)
 #define TASK_STACK_SIZE (unsigned long)(32 * 1024)
 
 // GLOBAL VARIABLES ------------------------------------------------------------
