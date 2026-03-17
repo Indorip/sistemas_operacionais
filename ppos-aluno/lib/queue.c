@@ -1,4 +1,6 @@
 // GRR20245621 Daniel Wesley Freitas Siqueira
+// GRR20245396 Guilherme Vitoriano Santana de Oliveira
+// GRR20245567 Ulisses Bastian Machado da Rosa
 
 // PingPongOS - PingPong Operating System
 // Prof. Carlos A. Maziero, DINF UFPR
@@ -12,31 +14,31 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct Node {
-    struct Node* next;
+typedef struct node_t {
+    struct node_t* next;
     void* content;
-} Node;
+} node_t;
 
 typedef struct queue_t {
-    Node* first;
-    Node* last;
-    Node* iterator;
+    node_t* first;
+    node_t* last;
+    node_t* iterator;
     int size;
-} Queue;
+} queue_t;
 
-Queue* queue_create() {
-    Queue* new_queue = calloc(1, sizeof(Queue));
+queue_t* queue_create() {
+    queue_t* new_queue = calloc(1, sizeof(queue_t));
     if (!new_queue) return NULL;
 
     return new_queue;
 }
 
-int queue_destroy(Queue* queue) {
+int queue_destroy(queue_t* queue) {
     if (!queue) return ERROR;
 
-    Node* aux = queue->first;
+    node_t* aux = queue->first;
     while (aux) {
-        Node* deleted = aux;
+        node_t* deleted = aux;
         aux = deleted->next;
         free(deleted);
     }
@@ -45,12 +47,12 @@ int queue_destroy(Queue* queue) {
     return NOERROR;
 }
 
-int queue_add(Queue* queue, void* item) {
+int queue_add(queue_t* queue, void* item) {
     if (!queue || !item) return ERROR;
 
-    Node* new_node = malloc(sizeof(Node));
+    node_t* new_node = malloc(sizeof(node_t));
     if (!new_node) return ERROR;
-    *new_node = (Node){.next = NULL, .content = item};
+    *new_node = (node_t){.next = NULL, .content = item};
 
     if (queue->size == 0) {
         queue->first = queue->last = new_node;
@@ -65,10 +67,10 @@ int queue_add(Queue* queue, void* item) {
     return NOERROR;
 }
 
-int queue_del(Queue* queue, void* item) {
+int queue_del(queue_t* queue, void* item) {
     if (!queue || !item) return ERROR;
 
-    Node* aux = queue->first;
+    node_t* aux = queue->first;
     switch (queue->size) {
         case 0:
             return ERROR;
@@ -105,7 +107,7 @@ int queue_del(Queue* queue, void* item) {
                         queue->iterator = queue->iterator->next;
                     }
 
-                    Node* deleted = aux->next;
+                    node_t* deleted = aux->next;
                     aux->next = deleted->next;
                     free(deleted);
                     queue->size--;
@@ -119,12 +121,12 @@ int queue_del(Queue* queue, void* item) {
     return ERROR;
 }
 
-bool queue_has(Queue* queue, void* item) {
+bool queue_has(queue_t* queue, void* item) {
     if (!queue || !item) {
         return false;
     }
 
-    for (Node* aux = queue->first; aux; aux = aux->next) {
+    for (node_t* aux = queue->first; aux; aux = aux->next) {
         if (aux->content == item) {
             return true;
         }
@@ -133,7 +135,7 @@ bool queue_has(Queue* queue, void* item) {
     return false;
 }
 
-int queue_size(Queue* queue) {
+int queue_size(queue_t* queue) {
     if (!queue) {
         return ERROR;
     }
@@ -141,7 +143,7 @@ int queue_size(Queue* queue) {
     return queue->size;
 }
 
-void* queue_head(Queue* queue) {
+void* queue_head(queue_t* queue) {
     if (!queue) {
         return NULL;
     }
@@ -154,7 +156,7 @@ void* queue_head(Queue* queue) {
     return NULL;
 }
 
-void* queue_next(Queue* queue) {
+void* queue_next(queue_t* queue) {
     if (!queue) {
         return NULL;
     }
@@ -169,7 +171,7 @@ void* queue_next(Queue* queue) {
     return NULL;
 }
 
-void* queue_item(Queue* queue) {
+void* queue_item(queue_t* queue) {
     if (!queue) {
         return NULL;
     }
@@ -181,13 +183,13 @@ void* queue_item(Queue* queue) {
     return NULL;
 }
 
-void queue_print(char* name, Queue* queue, void(func)(void*)) {
+void queue_print(char* name, queue_t* queue, void(func)(void*)) {
     if (!queue) {
         printf("%s: undef\n", name);
         return;
     }
     printf("%s: [ ", name);
-    for (Node* aux = queue->first; aux; aux = aux->next) {
+    for (node_t* aux = queue->first; aux; aux = aux->next) {
         if (func) {
             func(aux->content);
         } else {
