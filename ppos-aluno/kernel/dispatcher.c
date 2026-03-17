@@ -1,4 +1,6 @@
 // GRR20245621 Daniel Wesley Freitas Siqueira
+// GRR20245396 Guilherme Vitoriano Santana de Oliveira
+// GRR20245567 Ulisses Bastian Machado da Rosa
 
 // PingPongOS - PingPong Operating System
 
