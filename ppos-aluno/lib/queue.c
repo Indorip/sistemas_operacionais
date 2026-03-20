@@ -85,10 +85,11 @@ int queue_del(queue_t* queue, void* item) {
                 return ERROR;
             }
         default:
-            // não é possível iterar só checando se (aux != NULL) pois não
-            // conseguimos realizar (prev -> aux -> next) => (prev -> next).
-            // verificar então o primeiro nodo e depois iterar em (aux->next !=
-            // NULL)
+            // it's not possible to iterate only checking if (aux != NULL),
+            // because we're not able to remove (prev -> aux -> next) => (prev->next) 
+            // since nodes only point forward;
+            // thus, we check the first node and then iterate on
+            // (aux->next != NULL)
             if (aux->content == item) {
                 if (queue->iterator == aux) {
                     queue->iterator = queue->iterator->next;

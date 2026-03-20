@@ -87,13 +87,14 @@ int task_switch(struct task_t* task) {
 
         paused_task->status = READY;
         current_active_task = paused_task->parent;
+        // current_active_task->status =
+        //     RUNNING;  // ISSUE: should't this be _here_ instead of the
+        //               // _dispatcher_?
         ctx_swap(&paused_task->context, &current_active_task->context);
 
         return NOERROR;
     }
 
-    // TODO: maybe the dispatcher should be responsible for this check
-    //
     // cannot switch to a finished task
     if (task->status == FINISHED) return NOERROR;
 
@@ -101,7 +102,10 @@ int task_switch(struct task_t* task) {
                task_id(current_active_task), task_name(current_active_task),
                task_id(task), task_name(task));
 
+    paused_task->status = READY;
     current_active_task = task;
+    // current_active_task->status =
+        // RUNNING;  // ISSUE: should't this be _here_ instead of the _dispatcher_?
     ctx_swap(&paused_task->context, &current_active_task->context);
 
     return NOERROR;
@@ -120,8 +124,11 @@ char* task_name(struct task_t* task) {
 }
 
 void task_init() {
-    // this function is probably not necessary based on how the initialization
-    // works at the moment
+    // for now these assignments seem redundant
+    // (and this function also seems redundant with the current needs of the
+    // operating system)
+    // current_active_task = &task_kernel;
+    // task_kernel.status = RUNNING;
 
     ppos_debug("task subsystem initiated\n");
 }
