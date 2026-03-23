@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../kernel/macros.h"
+
 typedef struct node_t {
     struct node_t* next;
     void* content;
@@ -68,7 +70,11 @@ int queue_add(queue_t* queue, void* item) {
 }
 
 int queue_del(queue_t* queue, void* item) {
-    if (!queue || !item) return ERROR;
+    if (!queue || !item) {
+        ppos_debug("NULL pointer found in %s (queue: %p, item: %p)\n", __func__,
+                   queue, item);
+        return ERROR;
+    }
 
     node_t* aux = queue->first;
     switch (queue->size) {
@@ -86,10 +92,9 @@ int queue_del(queue_t* queue, void* item) {
             }
         default:
             // it's not possible to iterate only checking if (aux != NULL),
-            // because we're not able to remove (prev -> aux -> next) => (prev->next) 
-            // since nodes only point forward;
-            // thus, we check the first node and then iterate on
-            // (aux->next != NULL)
+            // because we're not able to remove (prev -> aux -> next) =>
+            // (prev->next) since nodes only point forward; thus, we check the
+            // first node and then iterate on (aux->next != NULL)
             if (aux->content == item) {
                 if (queue->iterator == aux) {
                     queue->iterator = queue->iterator->next;
