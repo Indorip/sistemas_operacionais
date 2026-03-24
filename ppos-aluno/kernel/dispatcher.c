@@ -45,7 +45,10 @@ void task_run(struct task_t* task) {
 }
 
 void task_yield() {
+    ppos_debug("yielding task %d (%s) to the kernel\n",
+               task_id(current_active_task), task_name(current_active_task));
     current_active_task->status = READY;
+    ppos_debug("adding task to ready_queue\n");
     if (queue_add(ready_queue, current_active_task) == ERROR) {
         fprintf(stderr,
                 "error when trying to insert task task in ready_queue %s\n",
@@ -100,13 +103,11 @@ void dispatcher() {
 
     while (queue_size(ready_queue) > 0) {
         struct task_t* next_task = queue_head(ready_queue);
-        // queue_del(ready_queue, next_task);
         if (next_task) {
             task_run(next_task);
 
             switch (next_task->status) {
                 case READY:
-                    // ret = queue_add(ready_queue, next_task);
                     if (queue_add(ready_queue, next_task) != NOERROR) {
                         fprintf(stderr,
                                 "error when trying to add task %d (%s) to the "
