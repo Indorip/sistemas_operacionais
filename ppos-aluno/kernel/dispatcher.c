@@ -85,6 +85,9 @@ void task_awake(struct task_t* task) {
 }
 
 void task_exit(int exit_code) {
+    ppos_debug("exiting from task %d (%s)\n", task_id(current_active_task),
+               task_name(current_active_task));
+
     current_active_task->status = FINISHED;
     task_switch(task_kernel);
 }
@@ -96,41 +99,39 @@ void dispatcher() {
     assert(task_user);
     assert(queue_add(ready_queue, task_user) == NOERROR);
 
-    // fprintf(stderr, "queue has task %d (%s)? %d\n", task_id(task_user),
-    //         task_name(task_user), queue_has(ready_queue, task_user));
-    // fprintf(stderr, "queue_size: %d\n", queue_size(ready_queue));
-    // return;
-
     while (queue_size(ready_queue) > 0) {
         struct task_t* next_task = queue_head(ready_queue);
-        if (next_task) {
-            task_run(next_task);
+        assert(next_task); // if this fails there's a problem with queue_t
+        ppos_debug("running task %d (%s)\n", task_id(next_task),
+                   task_name(next_task));
 
-            switch (next_task->status) {
-                case READY:
-                    if (queue_add(ready_queue, next_task) != NOERROR) {
-                        fprintf(stderr,
-                                "error when trying to add task %d (%s) to the "
-                                "ready_queue\n",
-                                next_task->id, next_task->name);
-                    }
-                    break;
-                case RUNNING:
-                    assert("should't be here" && false);
-                    break;
-                case SUSPENDED:
-                    assert("Yet to be implemented" && false);
-                    break;
-                case FINISHED:
-                    assert(task_destroy(next_task) ==
-                           NOERROR);  // this REALLY shouldn't fail here
-                    break;
-            }
+        task_run(next_task);
+
+        switch (next_task->status) {
+            case READY:
+                ppos_debug("got READY task\n");
+                if (queue_add(ready_queue, next_task) != NOERROR) {
+                    fprintf(stderr,
+                            "error when trying to add task %d (%s) to the "
+                            "ready_queue\n",
+                            next_task->id, next_task->name);
+                }
+                break;
+            case RUNNING:
+                ppos_debug("got RUNNING task\n");
+                assert("should't be here" && false);
+                break;
+            case SUSPENDED:
+                ppos_debug("got SUSPENDED task\n");
+                assert("Yet to be implemented" && false);
+                break;
+            case FINISHED:
+                ppos_debug("got FINISHED task\n");
+                assert(task_destroy(next_task) ==
+                       NOERROR);  // this REALLY shouldn't fail here
+                break;
         }
     }
 
-    task_switch(task_user);
-
     ppos_debug("dispatcher stopping, no more user tasks\n");
-    task_destroy(task_user);
 }

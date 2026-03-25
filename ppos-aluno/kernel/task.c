@@ -85,7 +85,7 @@ int task_switch(struct task_t* task) {
                    task_id(current_active_task->parent),
                    task_name(current_active_task->parent));
 
-        paused_task->status = READY;
+        // paused_task->status = READY;
         current_active_task = paused_task->parent;
         ctx_swap(&paused_task->context, &current_active_task->context);
 
