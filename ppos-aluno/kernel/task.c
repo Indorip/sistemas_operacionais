@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../lib/queue.h"
 #include "macros.h"
 #include "tcb.h"
 
@@ -26,11 +27,17 @@ unsigned long current_task_id =
 struct task_t task_kernel = (struct task_t){
     .id = 0,
     .name = "kernel",
-    .context = {0},  // will be set from the function task_init()
-    .status = READY, // TODO: should probably start as RUNNING
-    .parent = NULL,  // the kernel is the parent of all subsequent tasks
+    .context = {0},   // will be set from the function task_init()
+    .status = READY,  // TODO: should probably start as RUNNING
+    .parent = NULL,   // the kernel is the parent of all subsequent tasks
 };
 struct task_t* current_active_task = &task_kernel;
+
+// EXTERN GLOBALS --------------------------------------------------------------
+
+// needed when creating a task
+// only functions from dispatcher.c really need this structure
+extern struct queue_t* ready_queue;
 
 // FUNCTIONS -------------------------------------------------------------------
 
@@ -58,6 +65,16 @@ struct task_t* task_create(char* name, void (*entry)(void*), void* arg) {
     ppos_debug("task %d (%s) create task %d (%s)\n",
                task_id(current_active_task), task_name(current_active_task),
                task_id(new_task), task_name(new_task));
+
+    // needed for the dispatcher
+    ppos_debug("adding task %d (%s) to ready_queue\n", task_id(new_task),
+               task_name(new_task));
+    if (queue_add(ready_queue, new_task) == ERROR) {
+        fprintf(
+            stderr,
+            "error when adding task %d (%s) to ready_queue on function: %s\n",
+            task_id(new_task), task_name(new_task), __func__);
+    }
 
     return new_task;
 }
