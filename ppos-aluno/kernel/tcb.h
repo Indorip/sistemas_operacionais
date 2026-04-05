@@ -28,7 +28,11 @@ struct task_t {
                             // changed by the dispatcher
     struct task_t* parent;  // (parent)task that created this task;j
                             // NULL if it has been created by the kernel
-    int priority;  // task priority, which must be in the range [-20, 20]
+    int static_priority;    // static task priority, which must be in the range
+                            // [-20, 20]
+    int dynamic_priority;   // dynamic task priority, which does not have value
+                            // restructions, but starts the same as the static
+                            // priority
 };
 
 #endif

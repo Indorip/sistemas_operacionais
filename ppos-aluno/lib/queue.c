@@ -50,11 +50,24 @@ int queue_destroy(queue_t* queue) {
 }
 
 int queue_add(queue_t* queue, void* item) {
-    if (!queue || !item) return ERROR;
+    if (!queue || !item) {
+        ppos_debug(
+            "NULL pointer to queue or to item on %s(), returning ERROR\n",
+            __func__);
+        return ERROR;
+    }
+    // check_parm(!queue || !item, "NULL pointer to queue or to item", ERROR);
 
     node_t* new_node = malloc(sizeof(node_t));
-    if (!new_node) return ERROR;
-    *new_node = (node_t){.next = NULL, .content = item};
+    // check_parm(!new_node, "allocation error", ERROR);
+    if (!new_node) {
+        ppos_debug("allocation error on");
+        return ERROR;
+    }
+    *new_node = (node_t){
+        .next = NULL,
+        .content = item,
+    };
 
     if (queue->size == 0) {
         queue->first = queue->last = new_node;
@@ -115,6 +128,9 @@ int queue_del(queue_t* queue, void* item) {
 
                     node_t* deleted = aux->next;
                     aux->next = deleted->next;
+                    if (deleted == queue->last) {
+                        queue->last = aux;
+                    }
                     free(deleted);
                     queue->size--;
 
@@ -196,8 +212,14 @@ void queue_print(char* name, queue_t* queue, void(func)(void*)) {
     }
     printf("%s: [ ", name);
     for (node_t* aux = queue->first; aux; aux = aux->next) {
+#ifdef DEBUG
+        printf("%p: ", aux);
+#endif
         if (func) {
             func(aux->content);
+#ifdef DEBUG
+            printf("next -> %p\n", aux->next);
+#endif
         } else {
             printf("undef");
         }
