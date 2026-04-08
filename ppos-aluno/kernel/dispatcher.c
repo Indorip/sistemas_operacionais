@@ -98,10 +98,8 @@ void dispatcher() {
 
     struct task_t* task_user = task_create("user", user_main, NULL);
     assert(task_user);
-    // assert(queue_add(ready_queue, task_user) == NOERROR);
 
     while (queue_size(ready_queue) > 0) {
-        // struct task_t* next_task = queue_head(ready_queue);
         struct task_t* next_task = scheduler(ready_queue);
         assert(next_task);  // if this fails there's a problem with queue_t
 

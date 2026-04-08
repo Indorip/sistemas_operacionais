@@ -1,3 +1,7 @@
+// GRR20245621 Daniel Wesley Freitas Siqueira
+// GRR20245396 Guilherme Vitoriano Santana de Oliveira
+// GRR20245567 Ulisses Bastian Machado da Rosa
+
 // PingPongOS - PingPong Operating System
 
 #include <assert.h>
@@ -13,7 +17,9 @@ extern struct task_t* current_active_task;
 
 // FUNCTIONS -------------------------------------------------------------------
 
-void sched_init() { ppos_debug("started scheduler subsystem\n"); }
+void sched_init() {
+    ppos_debug("started scheduler subsystem\n");
+}
 
 struct task_t* scheduler(struct queue_t* ready_queue) {
     if (!ready_queue) {
@@ -27,6 +33,7 @@ struct task_t* scheduler(struct queue_t* ready_queue) {
         return NULL;
     }
 
+    // selecting a task to execute and aging the other ones
     struct task_t* selected_task = aux_task;
     while (aux_task) {
         aux_task->dynamic_priority--;  // aging
