@@ -5,6 +5,7 @@
 // PingPongOS - PingPong Operating System
 
 #include "dispatcher.h"
+#include "time.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -40,6 +41,8 @@ void task_run(struct task_t* task) {
         fprintf(stderr, "error when trying to remove a task in %s\n", __func__);
         return;
     }
+    task->remaining_quantum_time = QUANTUM;
+    task->execution_time += QUANTUM;
     task->status = RUNNING;
     task_switch(task);
     ppos_debug("RAN the task %d (%s)\n", task_id(task), task_name(task));
