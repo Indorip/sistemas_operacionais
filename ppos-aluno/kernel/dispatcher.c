@@ -5,7 +5,6 @@
 // PingPongOS - PingPong Operating System
 
 #include "dispatcher.h"
-#include "time.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -14,6 +13,7 @@
 #include "macros.h"
 #include "scheduler.h"
 #include "task.h"
+#include "time.h"
 
 // queues for tasks marked with their respective statuses
 struct queue_t* ready_queue;      // READY
@@ -43,6 +43,7 @@ void task_run(struct task_t* task) {
     }
     task->remaining_quantum_time = QUANTUM;
     task->execution_time += QUANTUM;
+    task->number_of_activations++;
     task->status = RUNNING;
     task_switch(task);
     ppos_debug("RAN the task %d (%s)\n", task_id(task), task_name(task));
@@ -91,6 +92,17 @@ void task_awake(struct task_t* task) {
 void task_exit(int exit_code) {
     ppos_debug("exiting from task %d (%s)\n", task_id(current_active_task),
                task_name(current_active_task));
+
+    current_active_task->execution_time +=
+        QUANTUM - current_active_task->remaining_quantum_time;
+
+    printf("PPOS: task %d (%s) ", task_id(current_active_task),
+           task_name(current_active_task));
+    printf("exit code %d, ", exit_code);
+    printf("%d ms elapsed time, ",
+           systime() - current_active_task->creation_time);
+    printf("%d ms cpu time, ", current_active_task->execution_time);
+    printf("%d activations\n", current_active_task->number_of_activations);
 
     current_active_task->status = FINISHED;
     task_switch(&task_kernel);
