@@ -12,6 +12,7 @@
 #include "../lib/queue.h"
 #include "macros.h"
 #include "tcb.h"
+#include "time.h"
 
 #define TASK_STACK_SIZE (unsigned long)(32 * 1024)
 
@@ -60,6 +61,8 @@ struct task_t* task_create(char* name, void (*entry)(void*), void* arg) {
         .context = new_context,
         .status = READY,
         .parent = current_active_task,
+        .creation_time = systime(),
+        .execution_time = 0,
     };
 
     ppos_debug("task %d (%s) create task %d (%s)\n",

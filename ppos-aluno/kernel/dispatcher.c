@@ -42,7 +42,6 @@ void task_run(struct task_t* task) {
         return;
     }
     task->remaining_quantum_time = QUANTUM;
-    task->execution_time += QUANTUM;
     task->number_of_activations++;
     task->status = RUNNING;
     task_switch(task);
@@ -52,6 +51,7 @@ void task_run(struct task_t* task) {
 void task_yield() {
     ppos_debug("yielding task %d (%s) to the kernel\n",
                task_id(current_active_task), task_name(current_active_task));
+    current_active_task->execution_time += QUANTUM;
     current_active_task->status = READY;
     ppos_debug("adding task to ready_queue\n");
     if (queue_add(ready_queue, current_active_task) == ERROR) {
