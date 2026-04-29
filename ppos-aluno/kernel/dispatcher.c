@@ -51,8 +51,10 @@ void task_run(struct task_t* task) {
 void task_yield() {
     ppos_debug("yielding task %d (%s) to the kernel\n",
                task_id(current_active_task), task_name(current_active_task));
+
     current_active_task->execution_time += QUANTUM;
     current_active_task->status = READY;
+
     ppos_debug("adding task to ready_queue\n");
     if (queue_add(ready_queue, current_active_task) == ERROR) {
         fprintf(stderr,
@@ -61,6 +63,7 @@ void task_yield() {
     }
 
     // returning to the kernel will resume to dispatcher()
+    task_kernel.number_of_activations++;
     task_switch(&task_kernel);
 }
 
@@ -93,16 +96,19 @@ void task_exit(int exit_code) {
     ppos_debug("exiting from task %d (%s)\n", task_id(current_active_task),
                task_name(current_active_task));
 
-    current_active_task->execution_time +=
-        QUANTUM - current_active_task->remaining_quantum_time;
+    // because there is no cpu time for the kernel in the test results
+    if (current_active_task != &task_kernel) {
+        current_active_task->execution_time +=
+            QUANTUM - current_active_task->remaining_quantum_time;
+    }
 
     printf("PPOS: task %d (%s) ", task_id(current_active_task),
            task_name(current_active_task));
     printf("exit code %d, ", exit_code);
-    printf("%d ms elapsed time, ",
+    printf("%5d ms elapsed time, ",
            systime() - current_active_task->creation_time);
-    printf("%d ms cpu time, ", current_active_task->execution_time);
-    printf("%d activations\n", current_active_task->number_of_activations);
+    printf("%5d ms cpu time, ", current_active_task->execution_time);
+    printf("%5d activations\n", current_active_task->number_of_activations);
 
     current_active_task->status = FINISHED;
     task_switch(&task_kernel);
@@ -144,4 +150,6 @@ void dispatcher() {
 
     ppos_debug("dispatcher stopping, no more user tasks\n");
     task_destroy(task_user);
+    task_exit(0);  // this will not leave the kernel but will show relevant
+                   // stats of task_kernel
 }

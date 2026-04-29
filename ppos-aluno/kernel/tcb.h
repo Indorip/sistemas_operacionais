@@ -34,7 +34,7 @@ struct task_t {
                             // restructions, but starts the same as the static
                             // priority
     int creation_time;      // time (in ms)
-    int execution_time;     // time spent only on executing the task
+    int execution_time;     // time spent only on executing the task (cpu time)
     int remaining_quantum_time;  // remaining time until removed preemptive from
                                  // cpu usage
     int number_of_activations;   // number of times this task has been activated

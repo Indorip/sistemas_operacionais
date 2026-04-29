@@ -140,8 +140,7 @@ char* task_name(struct task_t* task) {
 }
 
 void task_init() {
-    // this function is probably not necessary based on how the initialization
-    // works at the moment
+    task_kernel.creation_time = systime();
 
     ppos_debug("task subsystem initiated\n");
 }
