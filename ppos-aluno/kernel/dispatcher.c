@@ -53,6 +53,7 @@ void task_yield() {
                task_id(current_active_task), task_name(current_active_task));
 
     current_active_task->execution_time += QUANTUM;
+    current_active_task->remaining_quantum_time = QUANTUM;
     current_active_task->status = READY;
 
     ppos_debug("adding task to ready_queue\n");
@@ -96,11 +97,8 @@ void task_exit(int exit_code) {
     ppos_debug("exiting from task %d (%s)\n", task_id(current_active_task),
                task_name(current_active_task));
 
-    // because there is no cpu time for the kernel in the test results
-    if (current_active_task != &task_kernel) {
-        current_active_task->execution_time +=
-            QUANTUM - current_active_task->remaining_quantum_time;
-    }
+    current_active_task->execution_time +=
+        QUANTUM - current_active_task->remaining_quantum_time;
 
     printf("PPOS: task %d (%s) ", task_id(current_active_task),
            task_name(current_active_task));

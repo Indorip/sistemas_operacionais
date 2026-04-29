@@ -31,6 +31,7 @@ struct task_t task_kernel = (struct task_t){
     .context = {0},   // will be set from the function task_init()
     .status = READY,  // TODO: should probably start as RUNNING
     .parent = NULL,   // the kernel is the parent of all subsequent tasks
+    .remaining_quantum_time = QUANTUM,
 };
 struct task_t* current_active_task = &task_kernel;
 
