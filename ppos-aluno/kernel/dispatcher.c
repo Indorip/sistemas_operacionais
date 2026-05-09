@@ -15,9 +15,14 @@
 #include "task.h"
 #include "time.h"
 
+int existing_tasks = 0;
+
 // queues for tasks marked with their respective statuses
 struct queue_t* ready_queue;      // READY
 struct queue_t* suspended_queue;  // SUSPENDED
+struct queue_t*
+    finished_queue;  // FINISHED (for now this is not ideal, since we would
+                     // prefer to free the memory of a finished task)
 
 // since there is no way in the task interface to access the kernel directly, we
 // need to access it directly from the .c implementation so we can switch with
@@ -29,7 +34,11 @@ extern void user_main(void* arg);
 
 void dispatcher_init() {
     ready_queue = queue_create();
+    suspended_queue = queue_create();
+    finished_queue = queue_create();
     assert(ready_queue);
+    assert(suspended_queue);
+    assert(finished_queue);
 
     ppos_debug("subsystem dispatcher initiated\n");
 }
@@ -57,10 +66,12 @@ void task_yield() {
     current_active_task->status = READY;
 
     ppos_debug("adding task to ready_queue\n");
-    if (queue_add(ready_queue, current_active_task) == ERROR) {
-        fprintf(stderr,
-                "error when trying to insert task task in ready_queue %s\n",
-                __func__);
+    if (current_active_task != &task_kernel) {
+        if (queue_add(ready_queue, current_active_task) == ERROR) {
+            fprintf(stderr,
+                    "error when trying to insert task task in ready_queue %s\n",
+                    __func__);
+        }
     }
 
     // returning to the kernel will resume to dispatcher()
@@ -84,6 +95,10 @@ void task_awake(struct task_t* task) {
 
     if (task->status == SUSPENDED) {
         assert(queue_del(suspended_queue, task) == NOERROR);
+    } else {
+        fprintf(stderr, "task (%d) (%s) not suspended on task_awake()\n",
+                task_id(task), task_name(task));
+        return;
     }
 
     task->status = READY;
@@ -93,6 +108,27 @@ void task_awake(struct task_t* task) {
     }
 }
 
+int task_wait(struct task_t* task) {
+    if (!task) {
+        return -1;
+    }
+
+    if (task->status == FINISHED) {
+        return task->exit_code;
+    }
+
+    current_active_task->task_to_wait = task;
+
+    task_suspend(suspended_queue);
+
+    ppos_debug("waited task returned (%d) (%s) exited with: %d", task_id(task),
+               task_name(task), task->exit_code);
+    // since this context will only run when the other task finishes (and
+    // because we don't free the memory of finished tasks), it is safe to read
+    // task->exit_code
+    return task->exit_code;
+}
+
 void task_exit(int exit_code) {
     ppos_debug("exiting from task %d (%s)\n", task_id(current_active_task),
                task_name(current_active_task));
@@ -100,15 +136,32 @@ void task_exit(int exit_code) {
     current_active_task->execution_time +=
         QUANTUM - current_active_task->remaining_quantum_time;
 
-    printf("PPOS: task %d (%s) ", task_id(current_active_task),
-           task_name(current_active_task));
-    printf("exit code %d, ", exit_code);
-    printf("%5d ms elapsed time, ",
-           systime() - current_active_task->creation_time);
-    printf("%5d ms cpu time, ", current_active_task->execution_time);
-    printf("%5d activations\n", current_active_task->number_of_activations);
+    fprintf(stderr, "PPOS: task %d (%s) ", task_id(current_active_task),
+            task_name(current_active_task));
+    fprintf(stderr, "exit code %d, ", exit_code);
+    fprintf(stderr, "%5d ms elapsed time, ",
+            systime() - current_active_task->creation_time);
+    fprintf(stderr, "%5d ms cpu time, ", current_active_task->execution_time);
+    fprintf(stderr, "%5d activations\n",
+            current_active_task->number_of_activations);
 
     current_active_task->status = FINISHED;
+    current_active_task->exit_code = exit_code;
+
+    if (current_active_task == &task_kernel) return;
+
+    struct task_t* aux_task = queue_head(suspended_queue);
+    while (aux_task) {
+        if (aux_task->task_to_wait == current_active_task) {
+            ppos_debug("awake task (%d) (%s)\n", task_id(aux_task),
+                       task_name(aux_task));
+            task_awake(aux_task);
+        }
+        aux_task = queue_next(suspended_queue);
+    }
+
+    queue_add(finished_queue, current_active_task);
+
     task_switch(&task_kernel);
 }
 
@@ -134,20 +187,23 @@ void dispatcher() {
                 break;
             case SUSPENDED:
                 ppos_debug("got SUSPENDED task\n");
-                assert("Yet to be implemented" && false);
+                // assert("Yet to be implemented" && false);
                 break;
             case FINISHED:
                 ppos_debug("got FINISHED task\n");
-                if (next_task != task_user) {
-                    assert(task_destroy(next_task) ==
-                           NOERROR);  // this REALLY shouldn't fail here
-                }
+                // if (next_task != task_user) {
+                //     assert(task_destroy(next_task) ==
+                //            NOERROR);  // this REALLY shouldn't fail here
+                // }
                 break;
         }
     }
 
     ppos_debug("dispatcher stopping, no more user tasks\n");
     task_destroy(task_user);
+    queue_destroy(ready_queue);
+    queue_destroy(suspended_queue);
+    queue_destroy(finished_queue);
     task_exit(0);  // this will not leave the kernel but will show relevant
                    // stats of task_kernel
 }

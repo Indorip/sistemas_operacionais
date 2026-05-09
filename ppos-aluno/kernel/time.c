@@ -19,7 +19,7 @@ extern struct task_t* current_active_task;
 void handle_signal(int irq) {
     clock++;
 
-    if (current_active_task->remaining_quantum_time-- == 0)
+    if (--current_active_task->remaining_quantum_time == 0)
         task_yield();  // preemptively stopping the task
 }
 
