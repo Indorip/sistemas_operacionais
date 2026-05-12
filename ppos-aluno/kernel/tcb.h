@@ -38,8 +38,10 @@ struct task_t {
     int remaining_quantum_time;  // remaining time until removed preemptive from
                                  // cpu usage
     int number_of_activations;   // number of times this task has been activated
-    struct task_t* task_to_wait;        // task that is being waited to finish
-    int exit_code;
+    int target_to_wait;          // id from task that is being waited to finish
+    int target_exit_code;  // exit code from the target task that was being
+                           // waited
+    int exit_code; // task's own exit code
 };
 
 #endif

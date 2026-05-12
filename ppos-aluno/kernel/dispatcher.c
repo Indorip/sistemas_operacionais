@@ -117,16 +117,15 @@ int task_wait(struct task_t* task) {
         return task->exit_code;
     }
 
-    current_active_task->task_to_wait = task;
+    current_active_task->target_to_wait = task->id;
 
     task_suspend(suspended_queue);
 
     ppos_debug("waited task returned (%d) (%s) exited with: %d", task_id(task),
                task_name(task), task->exit_code);
-    // since this context will only run when the other task finishes (and
-    // because we don't free the memory of finished tasks), it is safe to read
-    // task->exit_code
-    return task->exit_code;
+    // we have the guarantee that the task executing this function only returned
+    // after task has finished
+    return current_active_task->target_exit_code;
 }
 
 void task_exit(int exit_code) {
@@ -152,9 +151,10 @@ void task_exit(int exit_code) {
 
     struct task_t* aux_task = queue_head(suspended_queue);
     while (aux_task) {
-        if (aux_task->task_to_wait == current_active_task) {
+        if (aux_task->target_to_wait == current_active_task->id) {
             ppos_debug("awake task (%d) (%s)\n", task_id(aux_task),
                        task_name(aux_task));
+            aux_task->target_exit_code = exit_code;
             task_awake(aux_task);
         }
         aux_task = queue_next(suspended_queue);
