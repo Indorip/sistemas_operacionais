@@ -20,6 +20,7 @@ int existing_tasks = 0;
 // queues for tasks marked with their respective statuses
 struct queue_t* ready_queue;      // READY
 struct queue_t* suspended_queue;  // SUSPENDED
+struct queue_t* sleeping_queue;   // sleeping(SUSPENDED)
 struct queue_t*
     finished_queue;  // FINISHED (for now this is not ideal, since we would
                      // prefer to free the memory of a finished task)
@@ -35,9 +36,11 @@ extern void user_main(void* arg);
 void dispatcher_init() {
     ready_queue = queue_create();
     suspended_queue = queue_create();
+    sleeping_queue = queue_create();
     finished_queue = queue_create();
     assert(ready_queue);
     assert(suspended_queue);
+    assert(sleeping_queue);
     assert(finished_queue);
 
     ppos_debug("subsystem dispatcher initiated\n");
@@ -94,7 +97,12 @@ void task_awake(struct task_t* task) {
     if (!task) return;
 
     if (task->status == SUSPENDED) {
-        assert(queue_del(suspended_queue, task) == NOERROR);
+        if (task->sleeping) {
+            assert(queue_del(sleeping_queue, task) == NOERROR);
+            task->sleeping = 0;
+        } else {
+            assert(queue_del(suspended_queue, task) == NOERROR);
+        }
     } else {
         fprintf(stderr, "task (%d) (%s) not suspended on task_awake()\n",
                 task_id(task), task_name(task));
@@ -126,6 +134,12 @@ int task_wait(struct task_t* task) {
     // we have the guarantee that the task executing this function only returned
     // after task has finished
     return current_active_task->target_exit_code;
+}
+
+void task_sleep(int t) {
+    current_active_task->sleeping = 1;
+    current_active_task->wake_up_time = systime() + t;
+    task_suspend(sleeping_queue);
 }
 
 void task_exit(int exit_code) {
@@ -171,31 +185,41 @@ void dispatcher() {
     struct task_t* task_user = task_create("user", user_main, NULL);
     assert(task_user);
 
-    while (queue_size(ready_queue) > 0) {
+    while (queue_size(ready_queue) > 0 || queue_size(sleeping_queue) > 0) {
         struct task_t* next_task = scheduler(ready_queue);
-        assert(next_task);  // if this fails there's a problem with queue_t
+        // assert(next_task);  // if this fails there's a problem with queue_t
 
-        task_run(next_task);
+        if (next_task) {
+            task_run(next_task);
 
-        switch (next_task->status) {
-            case READY:
-                ppos_debug("got READY task\n");
-                break;
-            case RUNNING:
-                ppos_debug("got RUNNING task\n");
-                assert("should't be here" && false);
-                break;
-            case SUSPENDED:
-                ppos_debug("got SUSPENDED task\n");
-                // assert("Yet to be implemented" && false);
-                break;
-            case FINISHED:
-                ppos_debug("got FINISHED task\n");
-                // if (next_task != task_user) {
-                //     assert(task_destroy(next_task) ==
-                //            NOERROR);  // this REALLY shouldn't fail here
-                // }
-                break;
+            switch (next_task->status) {
+                case READY:
+                    ppos_debug("got READY task\n");
+                    break;
+                case RUNNING:
+                    ppos_debug("got RUNNING task\n");
+                    assert("should't be here" && false);
+                    break;
+                case SUSPENDED:
+                    ppos_debug("got SUSPENDED task\n");
+                    // assert("Yet to be implemented" && false);
+                    break;
+                case FINISHED:
+                    ppos_debug("got FINISHED task\n");
+                    // if (next_task != task_user) {
+                    //     assert(task_destroy(next_task) ==
+                    //            NOERROR);  // this REALLY shouldn't fail here
+                    // }
+                    break;
+            }
+        }
+
+        struct task_t* aux_task = queue_head(sleeping_queue);
+        while (aux_task) {
+            if (systime() >= aux_task->wake_up_time) {
+                task_awake(aux_task);
+            }
+            aux_task = queue_next(sleeping_queue);
         }
     }
 
@@ -203,6 +227,7 @@ void dispatcher() {
     task_destroy(task_user);
     queue_destroy(ready_queue);
     queue_destroy(suspended_queue);
+    queue_destroy(sleeping_queue);
     queue_destroy(finished_queue);
     task_exit(0);  // this will not leave the kernel but will show relevant
                    // stats of task_kernel

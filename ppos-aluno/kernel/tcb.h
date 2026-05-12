@@ -41,7 +41,10 @@ struct task_t {
     int target_to_wait;          // id from task that is being waited to finish
     int target_exit_code;  // exit code from the target task that was being
                            // waited
-    int exit_code; // task's own exit code
+    int exit_code;         // task's own exit code
+    int sleeping;         // if the task is sleeping
+    int wake_up_time;  // time when task will go from suspended (sleeping) to
+                       // ready
 };
 
 #endif
