@@ -50,7 +50,8 @@ void task_run(struct task_t* task) {
     assert(task);
     ppos_debug("running task %d (%s)\n", task_id(task), task_name(task));
     if (queue_del(ready_queue, task) == ERROR) {
-        fprintf(stderr, "error when trying to remove a task in %s\n", __func__);
+        //fprintf(stderr, "error when trying to remove a task in %s\n", __func__);
+        printf("error when trying to remove a task in %s\n", __func__);
         return;
     }
     task->remaining_quantum_time = QUANTUM;
@@ -71,8 +72,10 @@ void task_yield() {
     ppos_debug("adding task to ready_queue\n");
     if (current_active_task != &task_kernel) {
         if (queue_add(ready_queue, current_active_task) == ERROR) {
-            fprintf(stderr,
+            /*fprintf(stderr,
                     "error when trying to insert task task in ready_queue %s\n",
+                    __func__);*/
+            printf("error when trying to insert task task in ready_queue %s\n",
                     __func__);
         }
     }
@@ -86,7 +89,8 @@ void task_suspend(struct queue_t* queue) {
     current_active_task->status = SUSPENDED;
     int ret = queue_add(queue, current_active_task);
     if (ret == ERROR) {
-        fprintf(stderr, "error when trying to insert suspended task\n");
+        //fprintf(stderr, "error when trying to insert suspended task\n");
+        printf("error when trying to insert suspended task\n");
     }
 
     // returning to the kernel will resume to dispatcher()
@@ -104,14 +108,18 @@ void task_awake(struct task_t* task) {
             assert(queue_del(suspended_queue, task) == NOERROR);
         }
     } else {
-        fprintf(stderr, "task (%d) (%s) not suspended on task_awake()\n",
+        /*fprintf(stderr, "task (%d) (%s) not suspended on task_awake()\n",
+                task_id(task), task_name(task));*/
+        printf("task (%d) (%s) not suspended on task_awake()\n",
                 task_id(task), task_name(task));
         return;
     }
 
     task->status = READY;
     if (queue_add(ready_queue, task) == ERROR) {
-        fprintf(stderr, "error when trying to add task to ready_queue on %s",
+        /*fprintf(stderr, "error when trying to add task to ready_queue on %s",
+                __func__);*/
+        printf("error when trying to add task to ready_queue on %s",
                 __func__);
     }
 }
@@ -148,7 +156,7 @@ void task_exit(int exit_code) {
 
     current_active_task->execution_time +=
         QUANTUM - current_active_task->remaining_quantum_time;
-
+/*
     fprintf(stderr, "PPOS: task %d (%s) ", task_id(current_active_task),
             task_name(current_active_task));
     fprintf(stderr, "exit code %d, ", exit_code);
@@ -156,6 +164,15 @@ void task_exit(int exit_code) {
             systime() - current_active_task->creation_time);
     fprintf(stderr, "%5d ms cpu time, ", current_active_task->execution_time);
     fprintf(stderr, "%5d activations\n",
+            current_active_task->number_of_activations);
+*/
+    printf("PPOS: task %d (%s) ", task_id(current_active_task),
+            task_name(current_active_task));
+    printf("exit code %d, ", exit_code);
+    printf("%5d ms elapsed time, ",
+            systime() - current_active_task->creation_time);
+    printf("%5d ms cpu time, ", current_active_task->execution_time);
+    printf("%5d activations\n",
             current_active_task->number_of_activations);
 
     current_active_task->status = FINISHED;
