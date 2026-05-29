@@ -21,8 +21,7 @@ struct semaphore_t {
     int lock;
     struct queue_t* wait_queue;
     int value;
-    int cur_value;
-    int destroy;    
+    int destroy;
 };
 
 // trava um spin-lock (busy wait)
@@ -68,19 +67,9 @@ struct semaphore_t *sem_create(int value) {
         free(semaphore);
         return NULL;
     }
-/*
-    spin_lock(&queue_lock);
-    int ret = queue_add(semaphore_queue,semaphore);
-    spin_unlock(&queue_lock);
-    if (ret == ERROR) {
-        queue_destroy(semaphore->wait_queue);
-        free(semaphore);
-        return NULL;
-    };
-*/
+
     semaphore -> lock = 0;
     semaphore -> value = value;
-    semaphore -> cur_value = value;
     semaphore -> destroy = 0;
 
     return semaphore;
@@ -102,8 +91,8 @@ int sem_down(struct semaphore_t *s) {
     }
     
     // Request access to semaphore
-    s -> cur_value--;
-    if (s -> cur_value < 0)
+    s -> value--;
+    if (s -> value < 0)
     {
         queue_add(s -> wait_queue, current_active_task);
         spin_unlock(&s -> lock);
@@ -113,6 +102,7 @@ int sem_down(struct semaphore_t *s) {
         spin_lock(&s -> lock);
         if (s -> destroy == 1)
         {
+            s -> value++;
             spin_unlock(&s -> lock);
             return ERROR;
         }
@@ -131,12 +121,13 @@ int sem_up(struct semaphore_t *s) {
         return ERROR;
 
     spin_lock(&s -> lock);
-    s -> cur_value++;
+    s -> value++;
     struct task_t* task_wake = queue_head(s -> wait_queue);
-    queue_del(s -> wait_queue, task_wake);
+    if (task_wake != NULL) queue_del(s -> wait_queue, task_wake);
+        
     spin_unlock(&s -> lock);
     task_awake(task_wake);
-
+    
     return NOERROR;
 }
 
@@ -151,25 +142,17 @@ int sem_destroy(struct semaphore_t *s) {
     spin_lock (&s -> lock);
     s -> destroy = 1;
     struct task_t* task_to_wake = queue_head(s -> wait_queue);
+    spin_unlock(&s -> lock);
 
     while (task_to_wake != NULL)
-    {   
+    {    
+        spin_lock (&s -> lock);
         queue_del(s->wait_queue, task_to_wake);
         task_awake(task_to_wake);
         task_to_wake = queue_head(s -> wait_queue);
-    } 
-    spin_unlock(&s -> lock);
-
-    // Waits until all active tasks interacting with semaphore finish
-    while (true)
-    {
-        spin_lock(&s -> lock);
-        if (s -> cur_value == s -> value)
-            break;
-        queue_add(s->wait_queue, current_active_task);
         spin_unlock(&s -> lock);
-        task_suspend(suspended_queue);
     }
+    task_yield();
 
     // Since all interactions with semaphore are finished can destroy
     queue_destroy(s -> wait_queue);
