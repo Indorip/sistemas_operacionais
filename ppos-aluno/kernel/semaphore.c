@@ -67,7 +67,20 @@ struct semaphore_t *sem_create(int value) {
         free(semaphore);
         return NULL;
     }
+    /*
+    // Logica caso adicionemos uma fila de semaforos para free fim sistema
+    spin_lock(&queue_lock);
+    if (queue_add(semaphore_queue, semaphore) == ERROR)
+    {
+        spin_unlock(&queue_lock);
+        queue_destroy(semaphore->wait_queue);
+        free(semaphore);
+        return NULL;
+    }
+    spin_unlock(&queue_lock);
 
+    */
+    
     semaphore -> lock = 0;
     semaphore -> value = value;
     semaphore -> destroy = 0;
@@ -86,6 +99,7 @@ int sem_down(struct semaphore_t *s) {
     spin_lock(&s -> lock);
     if (s -> destroy == 1)
     {
+        printf("fail in first\n");
         spin_unlock(&s -> lock);
         return ERROR;
     }
@@ -121,10 +135,15 @@ int sem_up(struct semaphore_t *s) {
         return ERROR;
 
     spin_lock(&s -> lock);
+    if (s -> destroy == 1)
+    {
+        spin_unlock(&s->lock);
+        return ERROR;
+    }
+    
     s -> value++;
     struct task_t* task_wake = queue_head(s -> wait_queue);
     if (task_wake != NULL) queue_del(s -> wait_queue, task_wake);
-        
     spin_unlock(&s -> lock);
     task_awake(task_wake);
     
@@ -152,11 +171,6 @@ int sem_destroy(struct semaphore_t *s) {
         task_to_wake = queue_head(s -> wait_queue);
         spin_unlock(&s -> lock);
     }
-    task_yield();
-
-    // Since all interactions with semaphore are finished can destroy
-    queue_destroy(s -> wait_queue);
-    free(s);
 
     return NOERROR;
 }
