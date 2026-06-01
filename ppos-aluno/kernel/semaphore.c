@@ -8,6 +8,7 @@
 #include "../lib/queue.h"
 #include "tcb.h"
 #include "dispatcher.h"
+#include "macros.h"
 
 extern struct task_t* current_active_task;
 extern struct queue_t* suspended_queue;
@@ -99,7 +100,7 @@ int sem_down(struct semaphore_t *s) {
     spin_lock(&s -> lock);
     if (s -> destroy == 1)
     {
-        printf("fail in first\n");
+        ppos_debug("fail in first\n");
         spin_unlock(&s -> lock);
         return ERROR;
     }
