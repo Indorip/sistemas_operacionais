@@ -32,6 +32,7 @@ struct task_t task_kernel = (struct task_t){
     .status = READY,  // TODO: should probably start as RUNNING
     .parent = NULL,   // the kernel is the parent of all subsequent tasks
     .remaining_quantum_time = QUANTUM,
+    .number_of_activations = 1,
 };
 struct task_t* current_active_task = &task_kernel;
 
