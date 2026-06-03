@@ -1,3 +1,7 @@
+// GRR20245621 Daniel Wesley Freitas Siqueira
+// GRR20245396 Guilherme Vitoriano Santana de Oliveira
+// GRR20245567 Ulisses Bastian Machado da Rosa
+
 // PingPongOS - PingPong Operating System
 // Estrutura que define um semáforo (struct opaco).
 
@@ -13,8 +17,8 @@
 extern struct task_t* current_active_task;
 extern struct queue_t* suspended_queue;
 
-// Talvez precise de uma queue dos semaforos posteriormente (funcionamento implementado, so descomentar)
-
+// possible solution for dealing with semaphore leaks at the end of the user program
+//
 //struct queue_t* semaphore_queue;
 //int queue_lock;
 
@@ -172,6 +176,11 @@ int sem_destroy(struct semaphore_t *s) {
         task_to_wake = queue_head(s -> wait_queue);
         spin_unlock(&s -> lock);
     }
+
+    // there is no proper way right now for freeing the semaphore with guarantee
+    // that no thread will use it after free
+    //
+    // free(s)
 
     return NOERROR;
 }
