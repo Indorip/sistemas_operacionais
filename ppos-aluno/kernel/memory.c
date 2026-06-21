@@ -3,7 +3,6 @@
 // implementação trivial, a ser substituída no projeto de alocação de heap.
 
 #include <stdio.h>
-// #include <stdlib.h>
 #include <string.h>
 
 // #include "../lib/libc.h"
@@ -17,7 +16,7 @@
 #define HEAP_SIZE 64 * 1024 * 1024
 
 static char heap[HEAP_SIZE];
-unsigned int block_number = 0;
+unsigned short int block_number = 0;
 unsigned long allocated_bytes = 0;
 unsigned long available_bytes = HEAP_SIZE;
 
@@ -40,7 +39,8 @@ void mem_init() {
         .next = NULL,
         .prev = NULL,
     };
-
+    //allocated_bytes += sizeof(block_header);
+    //available_bytes -= sizeof(block_header);
     memcpy(heap, &first_block, sizeof(block_header));
 
 #ifdef DEBUG
@@ -63,25 +63,25 @@ void mem_report() {
     block_header* current_block = (block_header*)heap;
     do {
         ppos_debug("here 1\n");
-        printf("heap: %d : %p - %p ", current_block->id, current_block,
+        printf("heap: block %d : %p - %p ", current_block->id, current_block,
                current_block + current_block->size);
         ppos_debug("here 2\n");
         if (current_block->is_used) {
-            printf("used ");
+            printf("aloc ");
         } else {
             printf("FREE ");
         }
         ppos_debug("here 3\n");
         if (current_block->prev) {
-            printf("prev %d", current_block->prev->id);
+            printf("prev %d\t", current_block->prev->id);
         } else {
-            printf("prev NULL");
+            printf("prev NULL\t");
         }
         ppos_debug("here 4\n");
         if (current_block->next) {
-            printf("next %d", current_block->next->id);
+            printf("next %d\t", current_block->next->id);
         } else {
-            printf("next NULL");
+            printf("next NULL\t");
         }
         ppos_debug("here 5\n");
         printf("size %d\n", current_block->size);
@@ -96,44 +96,34 @@ void* mem_alloc(int size) {
         return NULL;
     }
 
-    if (available_bytes < (unsigned int)size) {
+    if (available_bytes < (unsigned long) size) {
         return NULL;
     }
 
     // void* ptr = heap;
     block_header* current_block = (block_header*)heap;
-
+    unsigned int allocated_size =
+        ((size - 1) | 15) + 1;  // smallest (size <= multiple of 16)
+    
     // finding the first free block
     do {
-        // getting the first block
-
         // trying to allocate a new resource
-        if (!current_block->is_used) {
-            int value =
-                ((size - 1) | 15) + 1;  // smallest (size <= multiple of 16)
-            unsigned int allocated_size = value;
-
-            if (current_block->size >= allocated_size) {
+        if (!current_block->is_used && current_block->size >= allocated_size) {
                 current_block->is_used = 1;
                 ppos_debug("Will allocate memory\n");
-
+                
                 // if possible, split the current block in two, creating a
                 // new smaller one
-                if (current_block->size - allocated_size -
-                        sizeof(block_header) >
-                    16) {
+                if (current_block->size - allocated_size - sizeof(block_header) >= 16) {
                     ppos_debug("Block is big enough for splitting\n");
 
-                    unsigned long new_block_size = current_block->size -
+                    unsigned int new_block_size = current_block->size -
                                                    allocated_size -
                                                    sizeof(block_header);
-                    current_block->size = allocated_size;
 
-                    block_header* new_empty_block =
-                        current_block + (unsigned long)sizeof(block_header) +
-                        allocated_size;
+                    block_header* new_empty_block = (block_header*)((void*) current_block + (unsigned long)(sizeof(block_header) + allocated_size));
 
-                    ppos_debug("will write on position %d\n", (long long)new_empty_block);
+                    ppos_debug("will write on position %ld\n", (long) new_empty_block);
                     *new_empty_block = (block_header){
                         .id = block_number++,
                         .size = new_block_size,
@@ -141,13 +131,17 @@ void* mem_alloc(int size) {
                         .prev = current_block,
                         .next = current_block->next,
                     };
-                    ppos_debug("wrote\n", (unsigned long)new_empty_block);
+                    available_bytes -= sizeof(block_header);
+                    allocated_bytes += sizeof(block_header);
 
+                    ppos_debug("wrote\n", (unsigned long)new_empty_block);
                     current_block->next = new_empty_block;
                 }
+                else allocated_size = current_block -> size;
 
-                allocated_bytes += current_block->size + sizeof(block_header);
-                available_bytes -= current_block->size + sizeof(block_header);
+                allocated_bytes += allocated_size;
+                available_bytes -= allocated_size;
+                current_block->size = allocated_size;
 
                 // ppos_debug();
                 ppos_debug("allocated_bytes = %d/%d\n", allocated_bytes,
@@ -155,15 +149,12 @@ void* mem_alloc(int size) {
                 ppos_debug("available_bytes = %d/%d\n", available_bytes,
                            HEAP_SIZE);
                 return (void*)current_block +
-                       (unsigned long)sizeof(block_header);
-            }
+                       (unsigned long)sizeof(block_header);                       
         }
 
-        // ppos_debug("Current block is occupied or too small\n");
-        // ppos_debug(".");
+        ppos_debug("Current block is occupied or too small\n");
         // if previous block wasn't free or didn't have enough space, go to next
         current_block = current_block->next;
-
         // if we return to the first block, then there are no free blocks
     } while (current_block != NULL);
 
@@ -180,35 +171,48 @@ int mem_free(void* ptr) {
         return ERROR;
     }
 
-    // too close to the start of the heap to be valid
-    if ((unsigned long)ptr < ((unsigned long)heap + sizeof(block_header))) {
-        return ERROR;
+    block_header* to_free = ptr - sizeof(block_header);
+    block_header* current_block = (block_header*) heap;
+
+    while (current_block != NULL)
+    {
+        if (current_block == to_free) break;
+        else current_block = current_block->next;
     }
 
-    // assuming ptr is right after a block_header
-    // if not, it's undefined behavior
-    block_header* current_block = (ptr - sizeof(block_header));
+    if (current_block == NULL || !current_block -> is_used)
+        return ERROR;
+
 
     if (!current_block->is_used) {
         return ERROR;
     }
     current_block->is_used = 0;
 
-    allocated_bytes -= current_block->size + sizeof(block_header);
-    available_bytes += current_block->size + sizeof(block_header);
+    allocated_bytes -= current_block->size;
+    available_bytes += current_block->size;
 
     // trying to merge forwards
     if (current_block->next && !current_block->next->is_used) {
         current_block->size += sizeof(block_header) + current_block->next->size;
+        available_bytes += sizeof(block_header);
+        allocated_bytes -= sizeof(block_header);
+        
         current_block->next = current_block->next->next;
+        if (current_block->next)
+            current_block->next->prev = current_block;
     }
 
     // trying to merge backwards
     if (current_block->prev && !current_block->prev->is_used) {
         current_block->prev->size += sizeof(block_header) + current_block->size;
+        available_bytes += sizeof(block_header);
+        allocated_bytes -= sizeof(block_header);
+
         current_block->prev->next = current_block->next;
+        if (current_block->next)
+            current_block->next->prev = current_block->prev;
     }
 
-    // free(ptr);
     return (NOERROR);
 }
