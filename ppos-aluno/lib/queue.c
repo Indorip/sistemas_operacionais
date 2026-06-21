@@ -6,6 +6,10 @@
 // Prof. Carlos A. Maziero, DINF UFPR
 // Versão 2.0 -- Junho de 2025
 
+// Não conseguimos substituir funcionalmente o
+// alocador da libc pelo que está em memory.h nessa parte do programa;
+// o dispatcher fica em loop infinito
+
 // Implementação do TAD fila genérica
 
 #include "queue.h"
@@ -30,7 +34,8 @@ typedef struct queue_t {
 } queue_t;
 
 queue_t* queue_create() {
-    queue_t* new_queue = mem_alloc(sizeof(queue_t));
+    // queue_t* new_queue = mem_alloc(sizeof(queue_t));
+    queue_t* new_queue = malloc(sizeof(queue_t));
 
     if (!new_queue) return NULL;
 
@@ -49,7 +54,7 @@ int queue_destroy(queue_t* queue) {
     while (aux) {
         node_t* deleted = aux;
         aux = deleted->next;
-        //mem_free(deleted);
+        // mem_free(deleted);
         free(deleted);
 
     }
@@ -67,7 +72,7 @@ int queue_add(queue_t* queue, void* item) {
     }
     // check_parm(!queue || !item, "NULL pointer to queue or to item", ERROR);
 
-    //node_t* new_node = mem_alloc(sizeof(node_t));
+    // node_t* new_node = mem_alloc(sizeof(node_t));
     node_t* new_node = malloc(sizeof(node_t));
 
     
@@ -110,7 +115,7 @@ int queue_del(queue_t* queue, void* item) {
                 queue->first = queue->last = NULL;
                 queue->size = 0;
                 queue->iterator = NULL;
-                //mem_free(aux);
+                // mem_free(aux);
                 free(aux);
 
                 return NOERROR;
@@ -128,7 +133,7 @@ int queue_del(queue_t* queue, void* item) {
                 }
 
                 queue->first = aux->next;
-                //mem_free(aux);
+                // mem_free(aux);
                 free(aux);
 
                 queue->size--;
@@ -147,7 +152,7 @@ int queue_del(queue_t* queue, void* item) {
                     if (deleted == queue->last) {
                         queue->last = aux;
                     }
-                    //mem_free(deleted);
+                    // mem_free(deleted);
                     free(deleted);
 
                     
