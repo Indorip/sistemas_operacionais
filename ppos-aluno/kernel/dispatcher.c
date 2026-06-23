@@ -30,6 +30,9 @@ struct queue_t*
 // task_switch()
 extern struct task_t task_kernel;
 extern struct task_t* current_active_task;
+extern struct queue_t* requests;
+extern struct task_t* task_disk_handler;
+
 
 extern void user_main(void* arg);
 
@@ -104,7 +107,6 @@ void task_suspend(struct queue_t* queue) {
 
 void task_awake(struct task_t* task) {
     if (!task) return;
-
     if (task->status == SUSPENDED) {
         if (task->sleeping) {
             assert(queue_del(sleeping_queue, task) == NOERROR);
@@ -206,7 +208,7 @@ void dispatcher() {
     struct task_t* task_user = task_create("user", user_main, NULL);
     assert(task_user);
 
-    while (queue_size(ready_queue) > 0 || queue_size(sleeping_queue) > 0) {
+    while (queue_size(ready_queue) > 1 || queue_size(sleeping_queue) > 0 || queue_size(requests) > 0) {
         struct task_t* next_task = scheduler(ready_queue);
         // assert(next_task);  // if this fails there's a problem with queue_t
 
