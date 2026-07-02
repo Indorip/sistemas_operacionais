@@ -7,14 +7,14 @@
 #include "task.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 
 #include "../lib/queue.h"
 #include "macros.h"
 #include "tcb.h"
 #include "time.h"
+#include "memory.h"
 
-#define TASK_STACK_SIZE (unsigned long)(32 * 1024)
+#define TASK_STACK_SIZE (unsigned long)(4 * 1024)
 
 // GLOBAL VARIABLES ------------------------------------------------------------
 
@@ -45,12 +45,15 @@ extern struct queue_t* ready_queue;
 // FUNCTIONS -------------------------------------------------------------------
 
 struct task_t* task_create(char* name, void (*entry)(void*), void* arg) {
-    struct task_t* new_task = malloc(sizeof(struct task_t));
-    if (!new_task) return NULL;
+    struct task_t* new_task = mem_alloc(sizeof(struct task_t));
 
-    void* new_stack = malloc(TASK_STACK_SIZE);
+    if (!new_task){
+         return NULL;}
+
+    void* new_stack = mem_alloc(TASK_STACK_SIZE);
+
     if (!new_stack) {
-        free(new_task);
+        mem_free(new_task);
         return NULL;
     }
 
@@ -91,8 +94,8 @@ int task_destroy(struct task_t* task) {
                task_id(current_active_task), task_name(current_active_task),
                task_id(task), task_name(task));
 
-    free(task->context.stack);
-    free(task);
+    mem_free(task->context.stack);
+    mem_free(task);
 
     return NOERROR;
 }

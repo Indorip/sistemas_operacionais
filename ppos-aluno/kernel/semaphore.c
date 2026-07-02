@@ -6,21 +6,17 @@
 // Estrutura que define um semáforo (struct opaco).
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <assert.h>
 
 #include "../lib/queue.h"
 #include "tcb.h"
 #include "dispatcher.h"
 #include "macros.h"
+#include "memory.h"
 
 extern struct task_t* current_active_task;
 extern struct queue_t* suspended_queue;
 
-// possible solution for dealing with semaphore leaks at the end of the user program
-//
-//struct queue_t* semaphore_queue;
-//int queue_lock;
 
 struct semaphore_t {
     int lock;
@@ -49,9 +45,6 @@ void spin_unlock(int *lock){
 
 // inicia o subsistema de semáforos
 void sem_init() {
-    //semaphore_queue = queue_create();
-    //assert(semaphore_queue);
-    //queue_lock = 0;
 
     return;
 }
@@ -62,29 +55,18 @@ struct semaphore_t *sem_create(int value) {
     if (value < 0)
         return NULL;
     
-    struct semaphore_t* semaphore = malloc(sizeof(struct semaphore_t));
+    struct semaphore_t* semaphore = mem_alloc(sizeof(struct semaphore_t));
+
+    
     if (!semaphore)
         return NULL;
     
     semaphore -> wait_queue = queue_create();
     if (!semaphore -> wait_queue)
     {
-        free(semaphore);
+        mem_free(semaphore);   
         return NULL;
     }
-    /*
-    // Logica caso adicionemos uma fila de semaforos para free fim sistema
-    spin_lock(&queue_lock);
-    if (queue_add(semaphore_queue, semaphore) == ERROR)
-    {
-        spin_unlock(&queue_lock);
-        queue_destroy(semaphore->wait_queue);
-        free(semaphore);
-        return NULL;
-    }
-    spin_unlock(&queue_lock);
-
-    */
     
     semaphore -> lock = 0;
     semaphore -> value = value;
@@ -176,11 +158,6 @@ int sem_destroy(struct semaphore_t *s) {
         task_to_wake = queue_head(s -> wait_queue);
         spin_unlock(&s -> lock);
     }
-
-    // there is no proper way right now for freeing the semaphore with guarantee
-    // that no thread will use it after free
-    //
-    // free(s)
 
     return NOERROR;
 }

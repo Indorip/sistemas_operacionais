@@ -5,13 +5,13 @@
 // PingPongOS - PingPong Operating System
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "../lib/libc.h"
 #include "dispatcher.h"
 #include "ppos.h"
 #include "semaphore.h"
+#include "memory.h"
 
 typedef struct circular_buffer circular_buffer;
 struct circular_buffer {
@@ -33,7 +33,8 @@ circular_buffer circular_buffer_create(int max_capacity, int item_size) {
         "created circular buffer with max_capacity: %d and item_size: %d\n",
         max_capacity, item_size);
 
-    void* buff = calloc(max_capacity, item_size);
+    void* buff = mem_alloc(max_capacity*item_size);
+    
     if (!buff) return new_cb;
 
     new_cb.start = new_cb.end = 0;
@@ -48,7 +49,8 @@ circular_buffer circular_buffer_create(int max_capacity, int item_size) {
 void circular_buffer_destroy(circular_buffer* b) {
     if (!b) return;
 
-    if (b->buffer) free(b->buffer);
+    if (b->buffer) mem_free(b->buffer);
+
     b->buffer = NULL;
 }
 
@@ -148,7 +150,8 @@ struct mqueue_t* mqueue_create(int max_msgs, int msg_size) {
         sem_destroy(space_available);
         sem_destroy(items_available);
     }
-    struct mqueue_t* new_queue = malloc(sizeof(struct mqueue_t));
+    struct mqueue_t* new_queue = mem_alloc(sizeof(struct mqueue_t));
+
     if (!new_queue) {
         circular_buffer_destroy(&b);
         sem_destroy(space_available);
@@ -176,7 +179,7 @@ int mqueue_destroy(struct mqueue_t* queue) {
         sem_destroy(queue->items_available);
     }
 
-    free(queue);
+    mem_free(queue);
 
     return NOERROR;
 }
