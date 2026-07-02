@@ -16,7 +16,7 @@ extern struct task_t* current_active_task;
 
 // FUNCTIONS ---------------------------------------
 
-void handle_signal(int irq) {
+void handle_timer_signal(int irq) {
     clock++;
 
     if (--current_active_task->remaining_quantum_time == 0)
@@ -25,7 +25,7 @@ void handle_signal(int irq) {
 
 void time_init() {
     hw_timer(1, 1);
-    assert(hw_irq_handle(IRQ_TIMER, handle_signal) == NOERROR);
+    assert(hw_irq_handle(IRQ_TIMER, handle_timer_signal) == NOERROR);
 }
 
 int systime() {
