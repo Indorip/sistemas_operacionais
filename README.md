@@ -7,7 +7,7 @@ Referência seguida para a realização do trabalho
 O código aqui contido não deve ser copiado para fins de realização do trabalho
 a ser avaliado em futuras aplicações da matéria.
 
-Autores do Projeto:
-Daniel Siqueira
-Ulisses Bastian
+Autores do Projeto:  
+Daniel Siqueira  
+Ulisses Bastian  
 Guilherme Vitoriano
